@@ -15,7 +15,10 @@ def decode_url(str):
 
 @login_required
 def restricted(request):
-    return HttpResponse("Since you're logged in, you can see this text!")
+    #return HttpResponse("Since you're logged in, you can see this text!")
+    context = RequestContext(request)
+    return render_to_response('rango/restricted.html', {}, context)
+
 
 def index(request):
     # Obtain the context from the HTTP request.
