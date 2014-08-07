@@ -6,6 +6,7 @@ from rango.models import Category, Page
 from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from datetime import datetime
 
 def encode_url(str):
     return str.replace(' ', '_')
@@ -19,7 +20,7 @@ def restricted(request):
     context = RequestContext(request)
     return render_to_response('rango/restricted.html', {}, context)
 
-
+"""
 def index(request):
     # Obtain the context from the HTTP request.
     context = RequestContext(request)
@@ -37,8 +38,76 @@ def index(request):
     for category in category_list:
         category.url = encode_url(category.name)
 
-
     # Render the response and return to the client.
+    #return render_to_response('rango/index.html', context_dict, context)
+    response = render_to_response('rango/index.html', context_dict, context)
+    visits = int(request.COOKIES.get('visits', '0'))
+    if 'last_visit' in request.COOKIES:
+        last_visit = request.COOKIES['last_visit']
+        last_visit_time = datetime.strptime(last_visit[:-7], '%Y-%m-%d %H:%M:%S')
+        if (datetime.now() - last_visit_time).days > 0:
+            response.set_cookie('visits', visits+1)
+            response.set_cookie('last_visit', datetime.now())
+    else:
+        response.set_cookie('last_visit', datetime.now())
+    return response
+"""
+def index(request):
+    context = RequestContext(request)
+
+    category_list = Category.objects.all()
+    context_dict = {'categories': category_list}
+
+    for category in category_list:
+        category.url = encode_url(category.name)
+
+    page_list = Page.objects.order_by('-views')[:5]
+    context_dict['pages'] = page_list
+
+    #### NEW CODE ####
+    # Obtain our Response object early so we can add cookie information.
+    response = render_to_response('rango/index.html', context_dict, context)
+    visits = int(request.COOKIES.get('visits', '0'))
+    # Does the cookie last_visit exist?
+    if 'last_visit' in request.COOKIES:
+        # Yes it does! Get the cookie's value.
+        last_visit = request.COOKIES['last_visit']
+        # Cast the value to a Python date/time object.
+        last_visit_time = datetime.strptime(last_visit[:-7], "%Y-%m-%d %H:%M:%S")
+        # If it's been more than a day since the last visit...
+        if (datetime.now() - last_visit_time).days > 0:
+            # ...reassign the value of the cookie to +1 of what it was before...
+            response.set_cookie('visits', visits+1)
+            # ...and update the last visit cookie, too.
+            response.set_cookie('last_visit', datetime.now())
+    else:
+        # Cookie last_visit doesn't exist, so create it to the current date/time.
+        response.set_cookie('last_visit', datetime.now())
+    # Return response back to the user, updating any cookies 
+    return response
+
+def index(request):
+    context = RequestContext(request)
+
+    category_list = Category.objects.all()
+    context_dict = {'categories': category_list}
+
+    for category in category_list:
+        category.url = encode_url(category.name)
+
+    page_list = Page.objects.order_by('-views')[:5]
+    context_dict['pages'] = page_list
+
+    if request.session.get('last_visit'):
+        last_visit_time = request.session.get('last_visit')
+        visits = request.session.get('visits', '0')
+        if (datetime.now() - datetime.strptime(last_visit_time[:-7], "%Y-%m-%d %H:%M:%S")).days > 0:
+            request.session['visits'] = visits + 1
+            request.session['last_visit'] = str(datetime.now())
+    else:
+        request.session['visits'] = 1
+        request.session['last_visit'] = str(datetime.now())
+
     return render_to_response('rango/index.html', context_dict, context)
 
 def about(request):
