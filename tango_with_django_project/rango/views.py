@@ -111,10 +111,12 @@ def index(request):
     return render_to_response('rango/index.html', context_dict, context)
 
 def about(request):
-	#return HttpResponse("Rango Says: Here is the about page. <a href='/rango/'>Index</a>")
-	context = RequestContext(request)
-	context_dict = {'boldmessage': "django template value within html"}
-	return render_to_response('rango/about.html', context_dict, context)
+    context = RequestContext(request)
+    if request.session.get('visits'):
+        count = request.session.get('visits', '0')
+    else:
+        count = 0
+    return render_to_response('rango/about.html', {'visits': count}, context)
 
 def category(request, category_name_url):
     # Request our context from the request passed to us.
