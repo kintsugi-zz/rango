@@ -1,10 +1,12 @@
 {% extends 'rango/base.html' %}
 
 {% block body_block %}
+<div class="hero-unit">
 	<h1>Restricted</h1>
 	{% if user.is_authenticated %}
 	You can see this msg because you are authenticated!
 	{% else %}
 	You are not authenticated!
 	{% endif %}
+</div>
 {% endblock %}

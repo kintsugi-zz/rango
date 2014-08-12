@@ -113,7 +113,7 @@ def index(request):
 def about(request):
     context = RequestContext(request)
     if request.session.get('visits'):
-        count = request.session.get('visits', '0')
+        count = request.session.get('visits')
     else:
         count = 0
     return render_to_response('rango/about.html', {'visits': count}, context)

@@ -3,8 +3,9 @@
 {% load static %}
 
 {% block body_block %}
+<div class="hero-unit">
 	<h1>About Rango</h1>
 	Hey Earth! You have visited <strong>{{ visits }}</strong> time(s)!<br />
-	<a href="/media/">Media</a><br />
 	<img src="{% static "about_rango.jpg" %}" alt = "about pic of rango" />
+</div>
 {% endblock %}
