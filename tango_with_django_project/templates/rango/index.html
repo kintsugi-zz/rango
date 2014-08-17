@@ -3,10 +3,10 @@
 {% block body_block %}
 <div class='hero-unit'>
     <h1>Ready to Rango</h1>
-    <p>Find, Add, Share, and Rango useful links and resources.</p>
+    <p>Find, Add, Share and Rango useful links and resources.</p>
 </div>
 
-<div class='fluid-row'>
+<div class='row-fluid'>
     <div class='span6'>
         <h2>Top Five Categories</h2>
         {% if categories %}
@@ -15,9 +15,9 @@
             <li><a href="/rango/category/{{ category.url }}">{{ category.name }}</a></li>
             {% endfor %}
         </ul>
-       {% else %}
+        {% else %}
             <strong>There are no categories present.</strong>
-       {% endif %}
+        {% endif %}
     </div>
 
     <div class='span6'>

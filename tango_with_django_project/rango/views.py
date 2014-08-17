@@ -2,18 +2,36 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template import RequestContext
 from django.shortcuts import render_to_response
-from rango.models import Category, Page
+from rango.models import Category, Page, UserProfile
 from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from datetime import datetime
 from rango.bing_search import run_query
+from django.contrib.auth.models import User
 
 def encode_url(str):
     return str.replace(' ', '_')
 
 def decode_url(str):
     return str.replace('_', ' ')
+
+def get_category_list(max_results=0, starts_with=''):
+    cat_list = []
+
+    if starts_with:
+        cat_list = Category.objects.filter(name__startswith==starts_with)
+    else:
+        cat_list = Category.objects.all()
+
+    if max_results > 0:
+        if (len(cat_list) > max_result):
+            cat_list = cat_list[:max_results]
+
+    for cat in cat_list:
+        cat.url = encode_url(cat.name)
+
+    return cat_list
 
 @login_required
 def restricted(request):
@@ -22,12 +40,15 @@ def restricted(request):
 
 def index(request):
     context = RequestContext(request)
+    context_dict = {}
 
     category_list = Category.objects.all()
-    context_dict = {'categories': category_list}
-
     for category in category_list:
         category.url = encode_url(category.name)
+    context_dict['categories'] = category_list
+    
+    cat_list = get_category_list()
+    context_dict['cat_list'] = cat_list
 
     page_list = Page.objects.order_by('-views')[:5]
     context_dict['pages'] = page_list
@@ -65,12 +86,14 @@ def category(request, category_name_url):
     # We start by containing the name of the category passed by the user.
     context_dict = {'category_name': category_name, 'category_name_url': category_name_url}
 
+    cat_list = get_category_list()
+    context_dict['cat_list'] = cat_list
+
     try:
         # Can we find a category with the given name?
         # If we can't, the .get() method raises a DoesNotExist exception.
         # So the .get() method returns one model instance or raises an exception.
         category = Category.objects.get(name=category_name)
-
         # Retrieve all of the associated pages.
         # Note that filter returns >= 1 model instance.
         pages = Page.objects.filter(category=category)
@@ -84,6 +107,13 @@ def category(request, category_name_url):
         # We get here if we didn't find the specified category.
         # Don't do anything - the template displays the "no category" message for us.
         pass
+
+    if request.method == 'POST':
+        query = request.POST.get('query')
+        if query:
+            query = query.strip()
+            result_list = run_query(query)
+            context_dict['result_list'] = result_list
 
     # Go render the response and return it to the client.
     return render_to_response('rango/category.html', context_dict, context)
@@ -144,6 +174,9 @@ def add_page(request, category_name_url):
 
 def register(request):
     context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
+
     registered = False
     if request.method == 'POST':
         user_form = UserForm(data=request.POST)
@@ -166,11 +199,12 @@ def register(request):
     else:
         user_form = UserForm()
         profile_form = UserProfileForm()
-    return render_to_response('rango/register.html',
-            {'user_form': user_form, 
-            'profile_form': profile_form,
-            'registered': registered},
-            context)
+
+    context_dict['user_form'] = user_form
+    context_dict['profile_form'] = profile_form
+    context_dict['registered'] = registered
+
+    return render_to_response('rango/register.html', context_dict, context)
 
 def user_login(request):
     # Like before, obtain the context for the user's request.
@@ -211,6 +245,23 @@ def user_login(request):
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
         return render_to_response('rango/login.html', {}, context)
+
+@login_required
+def profile(request):
+    context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
+
+    u = User.objects.get(username=request.user)
+    try:
+        up = UserProfile.objects.get(user=u)
+    except:
+        up = None
+
+    context_dict['user'] = u
+    context_dict['userprofile'] = up
+
+    return render_to_response('rango/profile.html', context_dict, context)
 
 @login_required
 def user_logout(request):

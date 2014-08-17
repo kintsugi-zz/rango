@@ -6,18 +6,53 @@
 <div class="hero-unit">
     <h1>{{ category_name }}</h1>
 
-    {% if pages %}
-    <ul>
-        {% for page in pages %}
-        <li><a href="{{ page.url }}">{{ page.title }}</a></li>
-        {% endfor %}
-    </ul>
+    {% if category %}
+        <div id='pages'>
+        {% if pages %}
+        <ul>
+            {% for page in pages %}
+            <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+            {% endfor %}
+        </ul>
+        {% else %}
+            <strong>No pages currently in category.</strong>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+           <a href="/rango/category/{{category_name_url}}/add_page/">Add a Page</a>
+        {% endif %}
+        </div>
+
+        <div class="hero-unit">
+            <div class="container-fluid">
+                <p>Search for a page.</p>
+                <form class="span8 form-search" id="search_form" method="post" action="/rango/category/{{ category_name_url }}/">
+                    {% csrf_token %}
+                    <!-- Display the search form elements here -->
+                    <input type="text" class="input-long search-query" name="query" value="{{ category_name }}" id="query" />
+                    <input type="submit" class="btn btn-primary" name="submit" value="Search" />
+                    <br />
+                </form>
+            </div>
+
+            <div class='container-fluid'>
+                {% if result_list %}
+                <!-- Display search results in an ordered list -->
+                <ol>
+                {% for result in result_list %}
+                    <li>
+                        <strong><a href="{{ result.link }}">{{ result.title }}</a></strong><br />
+                        <em>{{ result.summary }}</em>
+                    </li>
+                {% endfor %}
+                </ol>
+                {% endif %}
+            </div>
+        </div>        
+
     {% else %}
-        <strong>No pages currently in category.</strong>
+        <strong>No categories are present.</strong>
     {% endif %}
 
-    {% if user.is_authenticated %}
-       <a href="/rango/category/{{category_name_url}}/add_page/">Add a Page</a>
-    {% endif %}
 </div>
 {% endblock %}

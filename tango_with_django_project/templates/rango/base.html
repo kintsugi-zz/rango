@@ -1,5 +1,7 @@
 <!DOCTYPE html>
+
 {% load static %}
+
 <html>
 	<head>
 	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,6 +28,7 @@
 						<ul class="nav pull-right">
 							{% if user.is_authenticated %}
 							 <li class="navbar-text">Welcome, {{ user.username }}!</li>
+							 <li><a href='/rango/profile'>Profile</a></li>
 							 <li><a href="/rango/logout">Logout</a></li>
 							{% else %}
 							 <li><a href='/rango/register/'>Register</a></li>
@@ -38,7 +41,7 @@
 							 <li><a href='/rango/add_category/'>Add Category</a></li>
 	        				{% endif %}
 	        				 <li><a href='/rango/about/'>About</a></li>
-	        				 <li><a href='/rango/search/'>Search</a></li>
+	        				 <!-- <li><a href='/rango/search/'>Search</a></li> -->
 						</ul>
 					</div>
 					<!-- /.nav-collapse -->
@@ -51,8 +54,15 @@
 				<div class="span3">
 					<div class="well sidebar-nav">
 						<!-- Empty for the timebeing -->
+
+						{% if cat_list %}
+							<div id='cats'>
+								{% include 'rango/category_list.html' with cat_list=cat_list %}
+							</div>
+						{% endif %}
 					</div>
 					<!-- /.well -->
+
 				</div>
 				<!-- /span -->
 				<div class="span9">
