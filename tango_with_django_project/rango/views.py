@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from datetime import datetime
 from rango.bing_search import run_query
 from django.contrib.auth.models import User
+from django.shortcuts import redirect
 
 def encode_url(str):
     return str.replace(' ', '_')
@@ -32,6 +33,25 @@ def get_category_list(max_results=0, starts_with=''):
         cat.url = encode_url(cat.name)
 
     return cat_list
+
+def track_url(request):
+    context = RequestContext(request)
+    page_id = None
+    url = '/rango/'
+    if request.method == 'GET':
+        if 'page_id' in request.GET:
+            page_id = request.GET['page_id']
+    
+            try:
+                page = Page.objects.get(id=page_id)
+                page.views += 1
+                page.save()
+                url = page.url
+            except:
+                pass
+
+    return redirect(url)
+
 
 @login_required
 def restricted(request):

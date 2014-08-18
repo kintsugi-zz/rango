@@ -4,14 +4,16 @@
 
 {% block body_block %}
 <div class="hero-unit">
-    <h1>{{ category_name }}</h1>
+    <h1>{{ category_name }}</h1><br />
 
     {% if category %}
         <div id='pages'>
         {% if pages %}
         <ul>
             {% for page in pages %}
-            <li><a href="{{ page.url }}">{{ page.title }}</a></li>
+            <li>
+                <a href="/rango/goto/?page_id={{ page.id }}">{{ page.title }} - {{page.views}} view(s)</a>
+            </li>
             {% endfor %}
         </ul>
         {% else %}
