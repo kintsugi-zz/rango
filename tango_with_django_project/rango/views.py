@@ -52,6 +52,23 @@ def track_url(request):
 
     return redirect(url)
 
+@login_required
+def like_category(request):
+    context = RequestContext(request)
+    category_id = None
+    likes = 0
+    if request.method == 'GET':
+        if 'category_id' in request.GET:
+            category_id = request.GET['category_id']
+            try:
+                category = Category.objects.get(id=int(category_id))
+                category.likes += 1
+                likes = category.likes
+                category.save()
+            except:
+                pass
+
+    return HttpResponse(likes)
 
 @login_required
 def restricted(request):
@@ -61,7 +78,7 @@ def restricted(request):
 def index(request):
     context = RequestContext(request)
     context_dict = {}
-
+    
     category_list = Category.objects.all()
     for category in category_list:
         category.url = encode_url(category.name)
