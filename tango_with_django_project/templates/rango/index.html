@@ -1,13 +1,16 @@
-{% extends 'rango/base.html' %}
+{% extends "rango/base.html" %}
+
+{% block title %}Welcome to Rango!{% endblock %}
 
 {% block body_block %}
-<div class='hero-unit'>
+<div class="hero-unit">
     <h1>Ready to Rango</h1>
+
     <p>Find, Add, Share and Rango useful links and resources.</p>
 </div>
 
-<div class='row-fluid'>
-    <div class='span6'>
+<div class="row-fluid">
+    <div class="span6">
         <h2>Top Five Categories</h2>
         {% if categories %}
         <ul>
@@ -16,21 +19,27 @@
             {% endfor %}
         </ul>
         {% else %}
-            <strong>There are no categories present.</strong>
+        <strong>No categories at present.</strong>
         {% endif %}
-    </div>
 
-    <div class='span6'>
-        <h3>Top Five Pages</h3>
+    </div>
+    <!--/span-->
+    <div class="span6">
+        <h2>Top Five Pages</h2>
         {% if pages %}
         <ul>
             {% for page in pages %}
-            <li><a href="{{ page.url }}">{{ page.title }}</a> - {{ page.category }} ({{ page.views }} view(s))</li>
+            <li><a href="{{ page.url}}">{{ page.title }}</a> - {{ page.category}} ({{ page.views }} view(s))</li>
             {% endfor %}
         </ul>
         {% else %}
-            <strong>There are no pages present.</strong>
+        <strong>No pages at present.</strong>
         {% endif %}
+
     </div>
-</div>
+    <!--/span-->
+</div><!--/row-->
+
+
 {% endblock %}
+

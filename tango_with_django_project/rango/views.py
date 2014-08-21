@@ -21,12 +21,12 @@ def get_category_list(max_results=0, starts_with=''):
     cat_list = []
 
     if starts_with:
-        cat_list = Category.objects.filter(name__startswith==starts_with)
+        cat_list = Category.objects.filter(name__istartswith==starts_with)
     else:
         cat_list = Category.objects.all()
 
     if max_results > 0:
-        if (len(cat_list) > max_result):
+        if len(cat_list) > max_result:
             cat_list = cat_list[:max_results]
 
     for cat in cat_list:
@@ -70,19 +70,58 @@ def like_category(request):
 
     return HttpResponse(likes)
 
+def suggest_category(request):
+    context = RequestContext(request)
+    cat_list = []
+    starts_with = ''
+
+    if request.method == 'GET':
+        starts_with = request.GET['suggestion']
+    else:
+        starts_with = request.POST['suggestion']
+    
+    cat_list = get_category_list(8, starts_with)
+
+    return render_to_response('rango/category_list.html', {'cat_list': cat_list}, context)
+
+@login_required
+def auto_add_page(request):
+    context = RequestContext(request)
+    context_dict = {}
+    title = None
+    url = None
+    cat_id = None
+
+    if request.method == 'GET':
+        title = request.method['title']
+        url = request.method['url']
+        cat_id = request.method['category_id']
+        if cat_id:
+            category = Category.objects.get(id=int(cat_id))
+            p = Page.objects.get_or_create(category=category, title=title, url=url)
+
+            pages = Page.objects.filter(category=category).order_by('-views')
+            context_dict['pages'] = pages
+
+    return render_to_response('rango/page_list.html', context_dict, context)
+
+
 @login_required
 def restricted(request):
     context = RequestContext(request)
-    return render_to_response('rango/restricted.html', {}, context)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
+    return render_to_response('rango/restricted.html', context_dict, context)
 
 def index(request):
     context = RequestContext(request)
-    context_dict = {}
-    
-    category_list = Category.objects.all()
-    for category in category_list:
+
+    top_category_list = Category.objects.order_by('-likes')[:5]
+
+    for category in top_category_list:
         category.url = encode_url(category.name)
-    context_dict['categories'] = category_list
+
+    context_dict = {'categories': top_category_list}
     
     cat_list = get_category_list()
     context_dict['cat_list'] = cat_list
@@ -104,11 +143,13 @@ def index(request):
 
 def about(request):
     context = RequestContext(request)
-    if request.session.get('visits'):
-        count = request.session.get('visits')
-    else:
-        count = 0
-    return render_to_response('rango/about.html', {'visits': count}, context)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
+
+    count = request.session.get('visits', 0)
+    context_dict['visits'] = count
+
+    return render_to_response('rango/about.html', context_dict, context)
 
 def category(request, category_name_url):
     # Request our context from the request passed to us.
@@ -127,22 +168,12 @@ def category(request, category_name_url):
     context_dict['cat_list'] = cat_list
 
     try:
-        # Can we find a category with the given name?
-        # If we can't, the .get() method raises a DoesNotExist exception.
-        # So the .get() method returns one model instance or raises an exception.
-        category = Category.objects.get(name=category_name)
-        # Retrieve all of the associated pages.
-        # Note that filter returns >= 1 model instance.
-        pages = Page.objects.filter(category=category)
-
-        # Adds our results list to the template context under name pages.
-        context_dict['pages'] = pages
-        # We also add the category object from the database to the context dictionary.
-        # We'll use this in the template to verify that the category exists.
+        category = Category.objects.get(name__iexact=category_name)
         context_dict['category'] = category
+        pages = Page.objects.filter(category=category).order_by('-views')
+        context_dict['pages'] = pages
+
     except Category.DoesNotExist:
-        # We get here if we didn't find the specified category.
-        # Don't do anything - the template displays the "no category" message for us.
         pass
 
     if request.method == 'POST':
@@ -155,8 +186,12 @@ def category(request, category_name_url):
     # Go render the response and return it to the client.
     return render_to_response('rango/category.html', context_dict, context)
 
+@login_required
 def add_category(request):
     context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
+
     if request.method == 'POST':
         form = CategoryForm(request.POST)
         if form.is_valid():
@@ -166,10 +201,15 @@ def add_category(request):
             print form.errors
     else:
         form = CategoryForm()
-    return render_to_response('rango/add_category.html', {'form': form}, context)
 
+    context_dict['form'] = form
+    return render_to_response('rango/add_category.html', context_dict, context)
+
+@login_required
 def add_page(request, category_name_url):
     context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
 
     category_name = decode_url(category_name_url)
     if request.method == 'POST':
@@ -188,7 +228,7 @@ def add_page(request, category_name_url):
             except Category.DoesNotExist:
                 # If we get here, the category does not exist.
                 # Go back and render the add category form as a way of saying the category does not exist.
-                return render_to_response('rango/add_category.html', {}, context)
+                return render_to_response('rango/add_page.html', context_dict, context)
 
             # Also, create a default value for the number of views.
             page.views = 0
@@ -203,11 +243,11 @@ def add_page(request, category_name_url):
     else:
         form = PageForm()
 
-    return render_to_response( 'rango/add_page.html',
-            {'category_name_url': category_name_url,
-             'category_name': category_name, 
-             'form': form},
-             context)
+    context_dict['category_name_url'] = category_name_url
+    context_dict['category_name'] = category_name
+    context_dict['form'] = form
+
+    return render_to_response( 'rango/add_page.html', context_dict, context)
 
 def register(request):
     context = RequestContext(request)
@@ -246,6 +286,8 @@ def register(request):
 def user_login(request):
     # Like before, obtain the context for the user's request.
     context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
 
     # If the request is a HTTP POST, try to pull out the relevant information.
     if request.method == 'POST':
@@ -270,18 +312,20 @@ def user_login(request):
                 return HttpResponseRedirect('/rango/')
             else:
                 # An inactive account was used - no logging in!
-                return HttpResponse("Your Rango account is disabled.")
+                context_dict['disabled_account'] = True
+                return render_to_response('rango/login.html', context_dict, context)
         else:
             # Bad login details were provided. So we can't log the user in.
             print "Invalid login details: {0}, {1}".format(username, password)
-            return HttpResponse("Your username or password was incorrect.")
+            context_dict['bad_details'] = True
+            return render_to_response('rango/login.html', context_dict, context)
 
     # The request is not a HTTP POST, so display the login form.
     # This scenario would most likely be a HTTP GET.
     else:
         # No context variables to pass to the template system, hence the
         # blank dictionary object...
-        return render_to_response('rango/login.html', {}, context)
+        return render_to_response('rango/login.html', context_dict, context)
 
 @login_required
 def profile(request):
@@ -307,6 +351,8 @@ def user_logout(request):
 
 def search(request):
     context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
     result_list = []
 
     if request.method == 'POST':
@@ -315,4 +361,5 @@ def search(request):
         if query:
             result_list = run_query(query)
 
-    return render_to_response('rango/search.html', {'result_list': result_list}, context)
+    context_dict['result_list'] = result_list
+    return render_to_response('rango/search.html', context_dict, context)
